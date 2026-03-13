@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
+
+	"github.com/timkrebs/greenlight/internal/data"
 )
 
 // Add a createMovieHandler for the "POST /v1/movies" endpoint. For now we simply
@@ -20,16 +23,26 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 	// stored in the request context. We can use the ParamsFromContext() function to
 	// retrieve a slice containing these parameter names and values.
 	//params := httprouter.ParamsFromContext(r.Context())
-
-	// We can then use the ByName() method to get the value of the "id" parameter from
-	// the slice. In our project all movies will have a unique positive integer ID, but
-	// the value returned by ByName() is always a string. So we try to convert it to an
-	// integer. If the parameter couldn't be converted, or is less than 1, we know the
-	// ID is invalid so we use the http.NotFound() function to return a 404 Not Found
-	// response.
 	id, err := app.readIDParam(r)
 	if err != nil {
 		http.NotFound(w, r)
+		return
+	}
+
+	movie := data.Movie{
+		ID:        id,
+		CreatedAt: time.Now(),
+		Title:     "Star Wars",
+		Runtime:   180,
+		Genres:    []string{"drama", "action", "sci-fi"},
+		Version:   1,
+	}
+
+	err = app.writeJSON(w, http.StatusOK, movie, nil)
+
+	if err != nil {
+		app.logger.Error(err.Error())
+		http.Error(w, "The server encounterd a problem and could not process your request", http.StatusInternalServerError)
 	}
 
 	// Interpolate the movie ID in a placeholder response
